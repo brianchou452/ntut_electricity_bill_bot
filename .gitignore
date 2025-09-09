@@ -1,0 +1,76 @@
+# 位元組編譯的檔案
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 發佈
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虛擬環境
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE 設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日誌檔案
+logs/
+*.log
+
+# 資料庫檔案
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Playwright
+.playwright/
+
+# 環境變數
+.env
+.env.local
+.env.production
+.env.development
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+.docker/
+
+# 截圖和偵錯檔案
+screenshots/
+debug_*.png

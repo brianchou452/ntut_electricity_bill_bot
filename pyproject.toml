@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "ntut-electricity-bill-bot"
+version = "0.1.0"
+description = ""
+authors = ["海獺 <brianchou452@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+playwright = "^1.48.0"
+loguru = "^0.7.2"
+aiohttp = "^3.10.0"
+aiosqlite = "^0.20.0"
+apscheduler = "^3.10.0"
+pydantic = "^2.9.0"
+pydantic-settings = "^2.0.0"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+# 自動安裝缺少的 type stubs
+install_types = true
+non_interactive = true
+
+[[tool.mypy.overrides]]
+module = [
+    "apscheduler.*",
+    "playwright.*",
+    "aiosqlite.*",
+]
+ignore_missing_imports = true

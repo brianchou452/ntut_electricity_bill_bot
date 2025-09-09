@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  ntut-electricity-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ntut-electricity-bot
+    restart: unless-stopped
+
+    environment:
+      - NTUT_USERNAME=${NTUT_USERNAME}
+      - NTUT_PASSWORD=${NTUT_PASSWORD}
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-0 */1 * * *} # 每小時執行一次
+      - RUN_ON_STARTUP=${RUN_ON_STARTUP:-true}
+      - TZ=${TZ:-Asia/Taipei}
+      - DB_PATH=/app/data/electricity_bot.db
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+      - XVFB_WHD=1920x1080x24
+    env_file:
+      - .env
+
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import asyncio; from src.scheduler.scheduler import SchedulerManager; sm = SchedulerManager(); print('healthy' if sm.get_status().get('is_running', False) else exit(1))",
+        ]
+      interval: 5m
+      timeout: 30s
+      retries: 3
+      start_period: 1m
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.1"
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    security_opt:
+      - no-new-privileges:true
+    
+    # 允許容器訪問 /dev/shm 以支援 Chromium
+    shm_size: 2gb
+
+networks:
+  default:
+    name: ntut-bot-network
