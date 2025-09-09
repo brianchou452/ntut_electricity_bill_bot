@@ -97,7 +97,7 @@ class TaskScheduler:
         try:
             result = await self.crawler_service.run_crawl_task()
 
-            await self._process_crawl_result(result, task_start_time)
+            await self._process_crawl_result(result)
 
         except Exception as e:
             app_logger.error(f"爬取任務執行異常: {e}")
@@ -112,7 +112,7 @@ class TaskScheduler:
                 str(e), float(log_entry.duration_seconds or 0.0)
             )
 
-    async def _process_crawl_result(self, result: Dict, start_time: datetime):
+    async def _process_crawl_result(self, result: Dict):
         duration = result["duration_seconds"]
 
         log_entry = CrawlerLog(
@@ -124,16 +124,12 @@ class TaskScheduler:
 
         await self.database.insert_crawler_log(log_entry)
 
-        # 發送餘額通知
-        if result.get("balance_number") is not None:
-            await self.notification_manager.send_balance_notification(
-                result.get("balance_text", ""), result["balance_number"]
-            )
-
         if result["status"] == "success":
             app_logger.info("爬取任務成功完成，餘額已儲存")
-            await self.notification_manager.send_crawl_success_notification(
-                result["records"], duration
+            # 發送合併的成功通知（包含餘額資訊）
+            balance_record = result["records"][0]  # 只有一個記錄
+            await self.notification_manager.send_balance_notification(
+                balance_record.balance
             )
 
         elif result["status"] == "partial":
@@ -152,7 +148,7 @@ class TaskScheduler:
 
         try:
             result = await self.crawler_service.run_crawl_task()
-            await self._process_crawl_result(result, start_time)
+            await self._process_crawl_result(result)
             return result
 
         except Exception as e:

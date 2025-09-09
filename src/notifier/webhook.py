@@ -120,26 +120,16 @@ class DiscordNotifier(WebhookNotifier):
         }
 
         if records:
-            if len(records) <= 5:
-                fields = []
-                for i, record in enumerate(records, 1):
-                    created_time = self._format_record_time(record.created_at, local_tz)
-                    fields.append(
-                        {
-                            "name": f"記錄 #{i}",
-                            "value": f"餘額: ${record.balance:.2f} NTD\n時間: {created_time}",
-                            "inline": True,
-                        }
-                    )
-                embed["fields"] = fields
-            else:
-                embed["fields"] = [
-                    {
-                        "name": "統計資訊",
-                        "value": f"共 {len(records)} 筆記錄\n最新餘額: ${records[0].balance:.2f} NTD",
-                        "inline": False,
-                    }
-                ]
+            # 永遠只有一個記錄，簡化處理
+            record = records[0]
+            created_time = self._format_record_time(record.created_at, local_tz)
+            embed["fields"] = [
+                {
+                    "name": "餘額資訊",
+                    "value": f"餘額: ${record.balance:.2f} NTD\n時間: {created_time}",
+                    "inline": False,
+                }
+            ]
 
         return {"embeds": [embed]}
 
@@ -169,13 +159,6 @@ class NotificationManager:
             self.notifiers.append(DiscordNotifier(webhook_url))
             app_logger.info("已添加 Discord webhook 通知")
 
-    async def send_crawl_success_notification(
-        self, records: List[ElectricityRecord], duration: float
-    ) -> None:
-        title = "🟢 電費爬取成功"
-        message = f"成功爬取 {len(records)} 筆電費記錄，耗時 {duration:.2f} 秒"
-
-        await self._send_to_all(title, message, records, "success")
 
     async def send_crawl_error_notification(
         self, error_message: str, duration: float
@@ -199,9 +182,9 @@ class NotificationManager:
 
         await self._send_to_all(title, message, None, "info")
 
-    async def send_balance_notification(self, balance_text: str, balance_number: float) -> None:
+    async def send_balance_notification(self, balance_number: float) -> None:
         title = "💰 購電餘額查詢成功"
-        message = f"目前購電餘額：{balance_text}\n餘額數值：{balance_number:.2f} NTD"
+        message = f"餘額數值：{balance_number:.2f} NTD"
 
         await self._send_to_all(title, message, None, "success")
 

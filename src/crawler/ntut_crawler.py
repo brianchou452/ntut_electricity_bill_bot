@@ -286,10 +286,6 @@ class CrawlerService:
                     f"登入成功，餘額: {balance_text} (數值: {balance_number})"
                 )
 
-                # 將餘額資訊存入結果中
-                result["balance_text"] = balance_text
-                result["balance_number"] = balance_number
-
                 # 建立並儲存餘額記錄到資料庫
                 if balance_number > 0 and hasattr(self, "database"):
                     balance_record = self.crawler.create_balance_record(balance_number)
