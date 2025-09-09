@@ -5,7 +5,8 @@
       "Bash(poetry lock:*)",
       "Bash(poetry install:*)",
       "Bash(poetry run playwright:*)",
-      "Bash(poetry run:*)"
+      "Bash(poetry run:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
