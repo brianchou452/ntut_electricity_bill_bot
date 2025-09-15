@@ -24,6 +24,7 @@ class BotSettings(BaseSettings):
     # 通知時間範圍配置
     notification_start_time: str = "06:00"  # 開始發送成功通知的時間 (HH:MM)
     notification_end_time: str = "23:00"    # 停止發送成功通知的時間 (HH:MM)
+    notification_balance_threshold: float = 100.0  # 餘額低於此數值才發送通知
     
     class Config:
         env_file = ".env"

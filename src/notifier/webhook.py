@@ -214,6 +214,11 @@ class NotificationManager:
             app_logger.info(f"成功通知已忽略（超出通知時間範圍）: {title} - {message}")
             return
 
+        # 檢查餘額是否小於門檻值，只有低餘額才發送通知
+        if balance_number >= settings.notification_balance_threshold:
+            app_logger.info(f"成功通知已忽略（餘額 {balance_number:.2f} >= {settings.notification_balance_threshold}）: {title} - {message}")
+            return
+
         await self._send_to_all(title, message, None, "success")
 
     async def _send_to_all(
