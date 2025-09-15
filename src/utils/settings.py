@@ -33,7 +33,4 @@ class BotSettings(BaseSettings):
 
 
 # 全域設定實例
-settings = BotSettings(
-    ntut_username="",
-    ntut_password=""
-)
+settings = BotSettings()  # type: ignore # noqa
