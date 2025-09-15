@@ -8,8 +8,8 @@ from typing import List, Optional
 
 import aiosqlite
 
-from ..utils.logger import app_logger
-from .models import CrawlerLog, ElectricityRecord
+from src.utils.logger import app_logger
+from src.database.models import CrawlerLog, ElectricityRecord
 
 
 class Database:
@@ -138,8 +138,8 @@ class Database:
             async with aiosqlite.connect(self.db_path) as db:
                 async with db.execute(
                     """
-                    SELECT balance FROM electricity_records 
-                    ORDER BY created_at DESC 
+                    SELECT balance FROM electricity_records
+                    ORDER BY created_at DESC
                     LIMIT 1
                 """
                 ) as cursor:
@@ -148,3 +148,69 @@ class Database:
         except Exception as e:
             app_logger.error(f"查詢最新餘額失敗: {e}")
             return None
+
+    async def get_yesterday_records(self, target_date: Optional[str] = None) -> List[ElectricityRecord]:
+        """取得昨日的所有記錄"""
+        try:
+            if target_date is None:
+                from datetime import datetime, timedelta
+                yesterday = datetime.now() - timedelta(days=1)
+                target_date = yesterday.strftime("%Y-%m-%d")
+
+            start_datetime = f"{target_date} 00:00:00"
+            end_datetime = f"{target_date} 23:59:59"
+
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = aiosqlite.Row
+                async with db.execute(
+                    """
+                    SELECT * FROM electricity_records
+                    WHERE created_at BETWEEN ? AND ?
+                    ORDER BY created_at ASC
+                """,
+                    (start_datetime, end_datetime),
+                ) as cursor:
+                    rows = await cursor.fetchall()
+                    return [ElectricityRecord(**dict(row)) for row in rows]
+        except Exception as e:
+            app_logger.error(f"查詢昨日記錄失敗: {e}")
+            return []
+
+    async def get_daily_usage_summary(self, target_date: Optional[str] = None) -> dict:
+        """取得每日用電摘要"""
+        records = await self.get_yesterday_records(target_date)
+
+        if len(records) < 2:
+            return {
+                "date": target_date,
+                "total_usage": 0.0,
+                "start_balance": None,
+                "end_balance": None,
+                "hourly_usage": []
+            }
+
+        # 計算總用電量 (起始餘額 - 結束餘額)
+        start_balance = records[0].balance
+        end_balance = records[-1].balance
+        total_usage = start_balance - end_balance
+
+        # 計算每小時用電量
+        hourly_usage = []
+        for i in range(1, len(records)):
+            prev_record = records[i-1]
+            curr_record = records[i]
+            usage = prev_record.balance - curr_record.balance
+
+            hourly_usage.append({
+                "time": curr_record.created_at.strftime("%H:%M") if curr_record.created_at else "Unknown",
+                "usage": max(0, usage),  # 確保用電量不為負數
+                "balance": curr_record.balance
+            })
+
+        return {
+            "date": target_date,
+            "total_usage": max(0, total_usage),
+            "start_balance": start_balance,
+            "end_balance": end_balance,
+            "hourly_usage": hourly_usage
+        }

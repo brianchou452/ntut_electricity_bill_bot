@@ -9,8 +9,8 @@ from typing import Any, Dict, Optional
 from playwright.async_api import Browser, Page, async_playwright
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from ..database.models import ElectricityRecord
-from ..utils.logger import app_logger
+from src.database.models import ElectricityRecord
+from src.utils.logger import app_logger
 
 # 常數定義
 BROWSER_NOT_INITIALIZED = "瀏覽器未初始化"

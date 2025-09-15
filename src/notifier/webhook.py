@@ -5,12 +5,13 @@ Webhook notification service
 from datetime import datetime, time
 from typing import Dict, List, Optional
 import zoneinfo
+from pathlib import Path
 
 import aiohttp
 
-from ..database.models import ElectricityRecord
-from ..utils.logger import app_logger
-from ..utils.settings import settings
+from src.database.models import ElectricityRecord
+from src.utils.logger import app_logger
+from src.utils.settings import settings
 
 
 class WebhookNotifier:
@@ -149,6 +150,51 @@ class DiscordNotifier(WebhookNotifier):
         
         return local_time.strftime("%Y-%m-%d %H:%M:%S")
 
+    async def send_chart_notification(self, chart_path: str, description: str) -> bool:
+        """發送圖表通知到 Discord"""
+        if not self.webhook_url:
+            app_logger.warning("Webhook URL 未設定，跳過圖表發送")
+            return False
+
+        try:
+            # 使用 multipart/form-data 發送檔案
+            with open(chart_path, 'rb') as f:
+                data = aiohttp.FormData()
+                data.add_field('file', f, filename=Path(chart_path).name)
+
+                # 建立 embed 資料
+                embed = {
+                    "title": description,
+                    "color": 0x00FF00,
+                    "image": {"url": f"attachment://{Path(chart_path).name}"},
+                    "timestamp": datetime.now().isoformat(),
+                    "footer": {"text": "NTUT電費帳單機器人"}
+                }
+
+                data.add_field('payload_json',
+                             aiohttp.JsonPayload({"embeds": [embed]}),
+                             content_type='application/json')
+
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        self.webhook_url,
+                        data=data,
+                        timeout=aiohttp.ClientTimeout(total=self.timeout),
+                    ) as response:
+                        if response.status in (200, 204):
+                            app_logger.info(f"圖表發送成功: {description}")
+                            return True
+                        else:
+                            app_logger.error(f"圖表發送失敗，狀態碼: {response.status}")
+                            return False
+
+        except FileNotFoundError:
+            app_logger.error(f"圖表檔案不存在: {chart_path}")
+            return False
+        except Exception as e:
+            app_logger.error(f"圖表發送發生錯誤: {e}")
+            return False
+
 
 class NotificationManager:
     def __init__(self):
@@ -204,6 +250,57 @@ class NotificationManager:
         message = "NTUT電費帳單機器人已成功啟動，開始執行定時爬取任務"
 
         await self._send_to_all(title, message, None, "info")
+
+    async def send_daily_summary_notification(
+        self,
+        daily_summary: Dict,
+        chart_path: Optional[str] = None
+    ) -> None:
+        """發送每日用電摘要通知"""
+        date = daily_summary.get("date", "未知日期")
+        total_usage = daily_summary.get("total_usage", 0)
+        start_balance = daily_summary.get("start_balance", 0)
+        end_balance = daily_summary.get("end_balance", 0)
+        hourly_count = len(daily_summary.get("hourly_usage", []))
+
+        title = "📊 每日用電摘要報告"
+
+        if total_usage > 0:
+            message = f"""📅 日期：{date}
+💰 總用電金額：${total_usage:.2f} NTD
+🔋 起始餘額：${start_balance:.2f} NTD
+🔋 結束餘額：${end_balance:.2f} NTD
+📈 記錄筆數：{hourly_count} 筆
+
+{"📊 圖表已生成，請查看附檔" if chart_path else ""}"""
+        else:
+            message = f"""📅 日期：{date}
+ℹ️ 今日無用電記錄或用電量為零
+
+可能原因：
+• 資料收集不足（少於2筆記錄）
+• 系統維護期間
+• 用電量極少"""
+
+        # 發送文字通知
+        await self._send_to_all(title, message, None, "info")
+
+        # 如果有圖表，發送圖表
+        if chart_path and Path(chart_path).exists():
+            await self._send_chart_to_all(chart_path, f"{date} 用電圖表")
+
+    async def _send_chart_to_all(self, chart_path: str, description: str) -> None:
+        """發送圖表到所有通知服務"""
+        if not self.notifiers:
+            app_logger.info(f"無可用的通知服務，跳過圖表發送: {description}")
+            return
+
+        for notifier in self.notifiers:
+            try:
+                if isinstance(notifier, DiscordNotifier):
+                    await notifier.send_chart_notification(chart_path, description)
+            except Exception as e:
+                app_logger.error(f"圖表發送失敗: {e}")
 
     async def send_balance_notification(self, balance_number: float) -> None:
         title = "💰 購電餘額查詢成功"
