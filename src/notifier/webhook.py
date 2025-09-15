@@ -2,7 +2,7 @@
 Webhook notification service
 """
 
-from datetime import datetime
+from datetime import datetime, time
 from typing import Dict, List, Optional
 import zoneinfo
 
@@ -159,6 +159,29 @@ class NotificationManager:
             self.notifiers.append(DiscordNotifier(webhook_url))
             app_logger.info("已添加 Discord webhook 通知")
 
+    def _is_within_notification_time(self) -> bool:
+        """檢查當前時間是否在通知時間範圍內"""
+        try:
+            # 解析設定中的時間
+            start_time = time.fromisoformat(settings.notification_start_time)
+            end_time = time.fromisoformat(settings.notification_end_time)
+            
+            # 取得當前本地時間
+            local_tz = zoneinfo.ZoneInfo(settings.tz)
+            current_time = datetime.now(local_tz).time()
+            
+            # 處理跨日情況 (例如 23:00 到 06:00)
+            if start_time <= end_time:
+                # 正常情況：06:00 到 23:00
+                return start_time <= current_time <= end_time
+            else:
+                # 跨日情況：23:00 到 06:00 (下一日)
+                return current_time >= start_time or current_time <= end_time
+                
+        except ValueError as e:
+            app_logger.error(f"通知時間設定格式錯誤: {e}")
+            return True  # 設定有誤時預設允許發送
+
 
     async def send_crawl_error_notification(
         self, error_message: str, duration: float
@@ -185,6 +208,11 @@ class NotificationManager:
     async def send_balance_notification(self, balance_number: float) -> None:
         title = "💰 購電餘額查詢成功"
         message = f"餘額數值：{balance_number:.2f} NTD"
+
+        # 檢查是否在通知時間範圍內
+        if not self._is_within_notification_time():
+            app_logger.info(f"成功通知已忽略（超出通知時間範圍）: {title} - {message}")
+            return
 
         await self._send_to_all(title, message, None, "success")
 

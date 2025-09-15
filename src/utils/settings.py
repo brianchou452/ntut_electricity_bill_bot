@@ -21,6 +21,10 @@ class BotSettings(BaseSettings):
     # Discord 通知配置
     discord_webhook_url: str = ""
     
+    # 通知時間範圍配置
+    notification_start_time: str = "06:00"  # 開始發送成功通知的時間 (HH:MM)
+    notification_end_time: str = "23:00"    # 停止發送成功通知的時間 (HH:MM)
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
