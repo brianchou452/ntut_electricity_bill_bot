@@ -14,7 +14,7 @@ from src.utils.logger import app_logger
 class ChartGenerator:
     def __init__(self):
         # 設定中文字體
-        plt.rcParams["font.sans-serif"] = ["Arial Unicode MS", "SimHei", "DejaVu Sans"]
+        plt.rcParams["font.sans-serif"] = ["Noto Sans CJK TC", "WenQuanYi Zen Hei", "WenQuanYi Micro Hei", "DejaVu Sans"]
         plt.rcParams["axes.unicode_minus"] = False
 
     async def generate_daily_usage_chart(

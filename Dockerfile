@@ -14,9 +14,9 @@ ENV PYTHONUNBUFFERED=1 \
 # 複製 pyproject.toml 檔案
 COPY pyproject.toml poetry.lock* ./
 
-# 安裝必要的系統套件和 Poetry
+# 安裝必要的系統套件、中文字體和 Poetry
 RUN apt-get update && \
-    apt-get install -y xvfb x11-utils && \
+    apt-get install -y fonts-noto-cjk fonts-wqy-microhei fonts-wqy-zenhei x11-utils xvfb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     pip install poetry && \
