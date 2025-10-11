@@ -22,6 +22,7 @@ from src.notifier.webhook import NotificationManager
 from src.scheduler.scheduler import TaskScheduler
 from src.utils.chart_generator import ChartGenerator
 from src.utils.logger import app_logger
+from src.utils.settings import settings
 
 
 class TestDataGenerator:
@@ -122,6 +123,13 @@ class DailySummaryTester:
             self.notification_manager.add_discord_webhook(webhook_url)
             app_logger.info(f"已配置 Discord webhook 用於測試")
 
+        # 如果提供了 Telegram 設定，就配置 Telegram 通知
+        if settings.telegram_bot_token and settings.telegram_chat_id:
+            self.notification_manager.add_telegram_notifier(
+                settings.telegram_bot_token, settings.telegram_chat_id
+            )
+            app_logger.info(f"已配置 Telegram 通知用於測試")
+
     async def test_database_queries(self, target_date: str = None):
         """測試資料庫查詢功能"""
         if target_date is None:
@@ -191,7 +199,9 @@ class DailySummaryTester:
             app_logger.info(f"圖表路徑: {chart_path}")
 
             # 實際發送通知
-            await self.notification_manager.send_daily_summary_notification(daily_summary, chart_path)
+            await self.notification_manager.send_daily_summary_notification(
+                daily_summary, chart_path
+            )
 
             app_logger.info("通知系統測試完成")
 
@@ -202,14 +212,8 @@ class DailySummaryTester:
         """測試調度器整合功能"""
         app_logger.info("=== 測試調度器整合功能 ===")
 
-        # 創建測試調度器（不啟動實際調度）
-        test_config = {
-            "db_path": "data/test_electricity_bot.db",
-            "discord_webhook": "",  # 空字串避免實際發送
-        }
-
         try:
-            scheduler = TaskScheduler(test_config)
+            scheduler = TaskScheduler()
 
             # 測試手動觸發每日摘要任務
             result = await scheduler.run_manual_daily_summary(target_date)
@@ -221,7 +225,9 @@ class DailySummaryTester:
             app_logger.error(f"調度器測試失敗: {e}")
             return None
 
-    async def run_full_test(self, target_date: str = None, send_notification: bool = False):
+    async def run_full_test(
+        self, target_date: str = None, send_notification: bool = False
+    ):
         """運行完整測試"""
         app_logger.info("🚀 開始每日摘要功能完整測試")
 
@@ -270,7 +276,9 @@ async def main():
     )
     parser.add_argument("--full-test", action="store_true", help="運行完整測試")
     parser.add_argument("--webhook-url", help="Discord webhook URL（用於實際發送通知）")
-    parser.add_argument("--send-notification", action="store_true", help="實際發送通知到 Discord")
+    parser.add_argument(
+        "--send-notification", action="store_true", help="實際發送通知到 Discord"
+    )
 
     args = parser.parse_args()
 
@@ -321,11 +329,21 @@ async def main():
 if __name__ == "__main__":
     print("=== NTUT 電費機器人 - 每日摘要功能測試 ===")
     print("使用方法:")
-    print("  python test_daily_summary.py --full-test                                    # 運行完整測試（不發送通知）")
-    print("  python test_daily_summary.py --full-test --send-notification --webhook-url <URL>  # 運行完整測試並發送通知")
-    print("  python test_daily_summary.py --date 2025-01-14 --send-notification --webhook-url <URL>  # 測試指定日期並發送通知")
-    print("  python test_daily_summary.py --generate-days 7                             # 生成7天測試資料")
-    print("  python test_daily_summary.py --clear                                       # 清空測試資料")
+    print(
+        "  python test_daily_summary.py --full-test                                    # 運行完整測試（不發送通知）"
+    )
+    print(
+        "  python test_daily_summary.py --full-test --send-notification --webhook-url <URL>  # 運行完整測試並發送通知"
+    )
+    print(
+        "  python test_daily_summary.py --date 2025-01-14 --send-notification --webhook-url <URL>  # 測試指定日期並發送通知"
+    )
+    print(
+        "  python test_daily_summary.py --generate-days 7                             # 生成7天測試資料"
+    )
+    print(
+        "  python test_daily_summary.py --clear                                       # 清空測試資料"
+    )
     print()
     print("注意：")
     print("  - 使用 --send-notification 需要同時提供 --webhook-url")

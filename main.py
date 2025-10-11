@@ -34,18 +34,7 @@ class ElectricityBillBot:
             Path("data").mkdir(exist_ok=True)
             Path("logs").mkdir(exist_ok=True)
 
-            # 轉換設定為字典格式供調度器使用
-            config = {
-                "username": settings.ntut_username,
-                "password": settings.ntut_password,
-                "db_path": settings.db_path,
-                "cron_schedule": settings.cron_schedule,
-                "run_on_startup": settings.run_on_startup,
-                "discord_webhook": settings.discord_webhook_url,
-                "timezone": settings.tz,
-            }
-
-            await self.scheduler_manager.start(config)
+            await self.scheduler_manager.start()
             self.running = True
 
             app_logger.info("🚀 NTUT 電費帳單機器人啟動成功!")
@@ -124,17 +113,7 @@ def run_manual_task():
     async def manual_task():
         bot = ElectricityBillBot()
         try:
-            # 初始化但不啟動調度器
-            config = {
-                "username": settings.ntut_username,
-                "password": settings.ntut_password,
-                "db_path": settings.db_path,
-                "cron_schedule": settings.cron_schedule,
-                "run_on_startup": False,  # 手動模式不自動執行
-                "discord_webhook": settings.discord_webhook_url,
-                "timezone": settings.tz,
-            }
-            await bot.scheduler_manager.start(config)
+            await bot.scheduler_manager.start()
             result = await bot.manual_crawl()
 
             app_logger.info("手動任務執行結果:")

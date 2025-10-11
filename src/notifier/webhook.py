@@ -111,7 +111,7 @@ class DiscordNotifier(WebhookNotifier):
         # 使用 settings 中的時區設定
         local_tz = zoneinfo.ZoneInfo(settings.tz)
         now_local = datetime.now(local_tz)
-        
+
         embed = {
             "title": title,
             "description": message,
@@ -138,16 +138,17 @@ class DiscordNotifier(WebhookNotifier):
         """格式化記錄時間到指定時區"""
         if not created_at:
             return "未知時間"
-            
+
         # 處理無時區資訊的情況，假設是 UTC
         if created_at.tzinfo is None:
             from datetime import timezone
+
             utc_time = created_at.replace(tzinfo=timezone.utc)
             local_time = utc_time.astimezone(target_tz)
         else:
             # 有時區資訊，直接轉換
             local_time = created_at.astimezone(target_tz)
-        
+
         return local_time.strftime("%Y-%m-%d %H:%M:%S")
 
     async def send_chart_notification(self, chart_path: str, description: str) -> bool:
@@ -158,9 +159,9 @@ class DiscordNotifier(WebhookNotifier):
 
         try:
             # 使用 multipart/form-data 發送檔案
-            with open(chart_path, 'rb') as f:
+            with open(chart_path, "rb") as f:
                 data = aiohttp.FormData()
-                data.add_field('file', f, filename=Path(chart_path).name)
+                data.add_field("file", f, filename=Path(chart_path).name)
 
                 # 建立 embed 資料
                 embed = {
@@ -168,12 +169,14 @@ class DiscordNotifier(WebhookNotifier):
                     "color": 0x00FF00,
                     "image": {"url": f"attachment://{Path(chart_path).name}"},
                     "timestamp": datetime.now().isoformat(),
-                    "footer": {"text": "NTUT電費帳單機器人"}
+                    "footer": {"text": "NTUT電費帳單機器人"},
                 }
 
-                data.add_field('payload_json',
-                             aiohttp.JsonPayload({"embeds": [embed]}),
-                             content_type='application/json')
+                data.add_field(
+                    "payload_json",
+                    aiohttp.JsonPayload({"embeds": [embed]}),
+                    content_type="application/json",
+                )
 
                 async with aiohttp.ClientSession() as session:
                     async with session.post(
@@ -196,6 +199,122 @@ class DiscordNotifier(WebhookNotifier):
             return False
 
 
+class TelegramNotifier(WebhookNotifier):
+    def __init__(self, bot_token: str, chat_id: str, timeout: int = 30):
+        # Telegram Bot API endpoint
+        super().__init__(
+            webhook_url=f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            timeout=timeout,
+        )
+        self.bot_token = bot_token
+        self.chat_id = chat_id
+        self.send_photo_url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+
+    async def _create_payload(
+        self,
+        title: str,
+        message: str,
+        records: Optional[List[ElectricityRecord]],
+        status: str,
+    ) -> Dict[str, object]:
+        # Telegram 使用 Markdown 格式
+        status_emoji = {
+            "success": "✅",
+            "error": "🔴",
+            "warning": "🟡",
+            "info": "ℹ️",
+        }
+
+        # 使用 settings 中的時區設定
+        local_tz = zoneinfo.ZoneInfo(settings.tz)
+        now_local = datetime.now(local_tz)
+
+        # 組合訊息文字
+        text_parts = [
+            f"{status_emoji.get(status, 'ℹ️')} **{title}**",
+            f"",
+            message,
+        ]
+
+        if records:
+            # 永遠只有一個記錄，簡化處理
+            record = records[0]
+            created_time = self._format_record_time(record.created_at, local_tz)
+            text_parts.extend(
+                [
+                    "",
+                    "**餘額資訊**",
+                    f"餘額: ${record.balance:.2f} NTD",
+                    f"時間: {created_time}",
+                ]
+            )
+
+        text_parts.extend(
+            ["", f"_{now_local.strftime('%Y-%m-%d %H:%M:%S')}_", "_NTUT電費帳單機器人_"]
+        )
+
+        return {
+            "chat_id": self.chat_id,
+            "text": "\n".join(text_parts),
+            "parse_mode": "Markdown",
+        }
+
+    def _format_record_time(self, created_at: Optional[datetime], target_tz) -> str:
+        """格式化記錄時間到指定時區"""
+        if not created_at:
+            return "未知時間"
+
+        # 處理無時區資訊的情況，假設是 UTC
+        if created_at.tzinfo is None:
+            from datetime import timezone
+
+            utc_time = created_at.replace(tzinfo=timezone.utc)
+            local_time = utc_time.astimezone(target_tz)
+        else:
+            # 有時區資訊，直接轉換
+            local_time = created_at.astimezone(target_tz)
+
+        return local_time.strftime("%Y-%m-%d %H:%M:%S")
+
+    async def send_chart_notification(self, chart_path: str, description: str) -> bool:
+        """發送圖表通知到 Telegram"""
+        if not self.bot_token or not self.chat_id:
+            app_logger.warning("Telegram bot token 或 chat ID 未設定，跳過圖表發送")
+            return False
+
+        try:
+            # 使用 multipart/form-data 發送照片
+            with open(chart_path, "rb") as f:
+                data = aiohttp.FormData()
+                data.add_field("chat_id", self.chat_id)
+                data.add_field("caption", description)
+                data.add_field("photo", f, filename=Path(chart_path).name)
+
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        self.send_photo_url,
+                        data=data,
+                        timeout=aiohttp.ClientTimeout(total=self.timeout),
+                    ) as response:
+                        if response.status == 200:
+                            app_logger.info(f"Telegram 圖表發送成功: {description}")
+                            return True
+                        else:
+                            response_text = await response.text()
+                            app_logger.error(
+                                f"Telegram 圖表發送失敗，狀態碼: {response.status}, "
+                                f"回應: {response_text}"
+                            )
+                            return False
+
+        except FileNotFoundError:
+            app_logger.error(f"圖表檔案不存在: {chart_path}")
+            return False
+        except Exception as e:
+            app_logger.error(f"Telegram 圖表發送發生錯誤: {e}")
+            return False
+
+
 class NotificationManager:
     def __init__(self):
         self.notifiers: List[WebhookNotifier] = []
@@ -205,17 +324,22 @@ class NotificationManager:
             self.notifiers.append(DiscordNotifier(webhook_url))
             app_logger.info("已添加 Discord webhook 通知")
 
+    def add_telegram_notifier(self, bot_token: str, chat_id: str) -> None:
+        if bot_token and chat_id:
+            self.notifiers.append(TelegramNotifier(bot_token, chat_id))
+            app_logger.info("已添加 Telegram 通知")
+
     def _is_within_notification_time(self) -> bool:
         """檢查當前時間是否在通知時間範圍內"""
         try:
             # 解析設定中的時間
             start_time = time.fromisoformat(settings.notification_start_time)
             end_time = time.fromisoformat(settings.notification_end_time)
-            
+
             # 取得當前本地時間
             local_tz = zoneinfo.ZoneInfo(settings.tz)
             current_time = datetime.now(local_tz).time()
-            
+
             # 處理跨日情況 (例如 23:00 到 06:00)
             if start_time <= end_time:
                 # 正常情況：06:00 到 23:00
@@ -223,11 +347,10 @@ class NotificationManager:
             else:
                 # 跨日情況：23:00 到 06:00 (下一日)
                 return current_time >= start_time or current_time <= end_time
-                
+
         except ValueError as e:
             app_logger.error(f"通知時間設定格式錯誤: {e}")
             return True  # 設定有誤時預設允許發送
-
 
     async def send_crawl_error_notification(
         self, error_message: str, duration: float
@@ -252,9 +375,7 @@ class NotificationManager:
         await self._send_to_all(title, message, None, "info")
 
     async def send_daily_summary_notification(
-        self,
-        daily_summary: Dict,
-        chart_path: Optional[str] = None
+        self, daily_summary: Dict, chart_path: Optional[str] = None
     ) -> None:
         """發送每日用電摘要通知"""
         date = daily_summary.get("date", "未知日期")
@@ -297,7 +418,7 @@ class NotificationManager:
 
         for notifier in self.notifiers:
             try:
-                if isinstance(notifier, DiscordNotifier):
+                if isinstance(notifier, (DiscordNotifier, TelegramNotifier)):
                     await notifier.send_chart_notification(chart_path, description)
             except Exception as e:
                 app_logger.error(f"圖表發送失敗: {e}")
@@ -313,7 +434,9 @@ class NotificationManager:
 
         # 檢查餘額是否小於門檻值，只有低餘額才發送通知
         if balance_number >= settings.notification_balance_threshold:
-            app_logger.info(f"成功通知已忽略（餘額 {balance_number:.2f} >= {settings.notification_balance_threshold}）: {title} - {message}")
+            app_logger.info(
+                f"成功通知已忽略（餘額 {balance_number:.2f} >= {settings.notification_balance_threshold}）: {title} - {message}"
+            )
             return
 
         await self._send_to_all(title, message, None, "success")

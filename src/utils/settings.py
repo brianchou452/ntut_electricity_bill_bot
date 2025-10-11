@@ -21,6 +21,10 @@ class BotSettings(BaseSettings):
     # Discord 通知配置
     discord_webhook_url: str = ""
 
+    # Telegram 通知配置
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
     # 通知時間範圍配置
     notification_start_time: str = "06:00"  # 開始發送成功通知的時間 (HH:MM)
     notification_end_time: str = "23:00"  # 停止發送成功通知的時間 (HH:MM)

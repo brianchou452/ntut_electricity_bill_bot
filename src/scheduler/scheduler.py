@@ -20,11 +20,12 @@ from src.utils.settings import settings
 
 
 class TaskScheduler:
-    def __init__(self, config: Dict):
-        self.config = config
+    def __init__(self):
         self.scheduler = AsyncIOScheduler()
-        self.database = Database(config.get("db_path", "data/electricity_bot.db"))
-        self.crawler_service = CrawlerService(config)
+        self.database = Database(settings.db_path)
+        self.crawler_service = CrawlerService(
+            {"username": settings.ntut_username, "password": settings.ntut_password}
+        )
         self.crawler_service.set_database(self.database)  # 設定資料庫實例
         self.notification_manager = NotificationManager()
         self.chart_generator = ChartGenerator()
@@ -37,13 +38,9 @@ class TaskScheduler:
         executors = {"default": AsyncIOExecutor()}
         self.scheduler.configure(executors=executors)
 
-        cron_expression = self.config.get(
-            "cron_schedule", "0 */1 * * *"
-        )  # 每小時執行一次
-
         try:
             # 爬取任務
-            trigger = CronTrigger.from_crontab(cron_expression)
+            trigger = CronTrigger.from_crontab(settings.cron_schedule)
             self.scheduler.add_job(
                 func=self.run_crawl_task,
                 trigger=trigger,
@@ -52,7 +49,7 @@ class TaskScheduler:
                 replace_existing=True,
                 max_instances=1,
             )
-            app_logger.info(f"已設定定時任務，執行週期: {cron_expression}")
+            app_logger.info(f"已設定定時任務，執行週期: {settings.cron_schedule}")
 
             # 每日匯總任務 - 在通知起始時間執行
             from datetime import time
@@ -74,14 +71,17 @@ class TaskScheduler:
             )
 
         except ValueError as e:
-            app_logger.error(f"無效的 cron 表達式或時間設定 '{cron_expression}': {e}")
+            app_logger.error(f"無效的 cron 表達式或時間設定: {e}")
             raise
 
     def _setup_notifications(self):
-        discord_webhook = self.config.get("discord_webhook")
+        if settings.discord_webhook_url:
+            self.notification_manager.add_discord_webhook(settings.discord_webhook_url)
 
-        if discord_webhook:
-            self.notification_manager.add_discord_webhook(discord_webhook)
+        if settings.telegram_bot_token and settings.telegram_chat_id:
+            self.notification_manager.add_telegram_notifier(
+                settings.telegram_bot_token, settings.telegram_chat_id
+            )
 
     async def start(self):
         if self.is_running:
@@ -97,7 +97,7 @@ class TaskScheduler:
             app_logger.info("任務調度器啟動成功")
             await self.notification_manager.send_startup_notification()
 
-            if self.config.get("run_on_startup", True):
+            if settings.run_on_startup:
                 app_logger.info("啟動時執行一次爬取任務")
                 self._startup_task = asyncio.create_task(self.run_crawl_task())
 
@@ -171,7 +171,6 @@ class TaskScheduler:
         app_logger.info("開始執行每日用電摘要任務")
 
         try:
-
             # 計算昨日日期
             yesterday = datetime.now() - timedelta(days=1)
             target_date = yesterday.strftime("%Y-%m-%d")
@@ -288,19 +287,19 @@ class TaskScheduler:
 class SchedulerManager:
     _instance: Optional["SchedulerManager"] = None
 
-    def __new__(cls, config: Optional[Dict] = None):
+    def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self):
         if not hasattr(self, "_initialized"):
-            self.scheduler = TaskScheduler(config) if config else None
+            self.scheduler: Optional[TaskScheduler] = None
             self._initialized = True
 
-    async def start(self, config: Dict):
+    async def start(self):
         if not self.scheduler:
-            self.scheduler = TaskScheduler(config)
+            self.scheduler = TaskScheduler()
         await self.scheduler.start()
 
     async def stop(self):
