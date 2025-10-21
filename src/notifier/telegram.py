@@ -40,14 +40,17 @@ class TelegramNotifier(WebhookNotifier):
         title: str,
         message: str,
         records: Optional[List[ElectricityRecord]],
-        status: str,
+        level: Union[NotificationLevel, int],
     ) -> Dict[str, object]:
-        # Telegram 使用 Markdown 格式
-        status_emoji = {
-            "success": "✅",
-            "error": "🔴",
-            "warning": "🟡",
-            "info": "ℹ️",
+        # 根據通知等級決定 emoji
+        notification_level = NotificationLevel(level)
+        level_emoji = {
+            NotificationLevel.DEBUG: "🔍",
+            NotificationLevel.INFO: "ℹ️",
+            NotificationLevel.SUCCESS: "✅",
+            NotificationLevel.WARNING: "🟡",
+            NotificationLevel.ERROR: "🔴",
+            NotificationLevel.CRITICAL: "🚨",
         }
 
         # 使用 settings 中的時區設定
@@ -56,7 +59,7 @@ class TelegramNotifier(WebhookNotifier):
 
         # 組合訊息文字
         text_parts = [
-            f"{status_emoji.get(status, 'ℹ️')} **{title}**",
+            f"{level_emoji.get(notification_level, 'ℹ️')} **{title}**",
             "",
             message,
         ]

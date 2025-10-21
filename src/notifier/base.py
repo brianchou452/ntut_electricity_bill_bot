@@ -28,7 +28,6 @@ class WebhookNotifier:
         title: str,
         message: str,
         records: Optional[List[ElectricityRecord]] = None,
-        status: str = "info",
         level: Union[NotificationLevel, int] = NotificationLevel.INFO,
     ) -> bool:
         if not self.webhook_url:
@@ -45,7 +44,7 @@ class WebhookNotifier:
             return False
 
         try:
-            payload = await self._create_payload(title, message, records, status)
+            payload = await self._create_payload(title, message, records, level)
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -74,7 +73,7 @@ class WebhookNotifier:
         title: str,
         message: str,
         records: Optional[List[ElectricityRecord]],
-        status: str,
+        level: Union[NotificationLevel, int],
     ) -> Dict[str, object]:
         from datetime import datetime
         from typing import Any
@@ -85,7 +84,7 @@ class WebhookNotifier:
             "timestamp": timestamp,
             "title": title,
             "message": message,
-            "status": status,
+            "level": LEVEL_NAMES[NotificationLevel(level)],
             "bot_name": "NTUT電費帳單機器人",
         }
 

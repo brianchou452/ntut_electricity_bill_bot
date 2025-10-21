@@ -66,7 +66,7 @@ async def test_notification_levels():
         print("✅ 發送" if level >= NotificationLevel.ERROR else "❌ 跳過")
 
         await manager._send_to_all(
-            title=title, message=message, records=None, status="info", level=level
+            title=title, message=message, records=None, level=level
         )
 
     print("\\n" + "=" * 60)

@@ -14,13 +14,14 @@ from src.crawler.ntut_crawler import CrawlerService
 from src.database.database import Database
 from src.database.models import CrawlerLog
 from src.notifier import NotificationManager
+from src.notifier.levels import NotificationLevel
 from src.utils.chart_generator import ChartGenerator
 from src.utils.logger import app_logger
 from src.utils.settings import settings
 
 
 class TaskScheduler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.scheduler = AsyncIOScheduler()
         self.database = Database(settings.db_path)
         self.crawler_service = CrawlerService(
@@ -34,7 +35,7 @@ class TaskScheduler:
         self._setup_scheduler()
         self._setup_notifications()
 
-    def _setup_scheduler(self):
+    def _setup_scheduler(self) -> None:
         executors = {"default": AsyncIOExecutor()}
         self.scheduler.configure(executors=executors)
 
@@ -74,16 +75,20 @@ class TaskScheduler:
             app_logger.error(f"無效的 cron 表達式或時間設定: {e}")
             raise
 
-    def _setup_notifications(self):
+    def _setup_notifications(self) -> None:
         if settings.discord_webhook_url:
-            self.notification_manager.add_discord_webhook(settings.discord_webhook_url)
+            self.notification_manager.add_discord_webhook(
+                settings.discord_webhook_url, min_level=NotificationLevel.DEBUG
+            )
 
         if settings.telegram_bot_token and settings.telegram_chat_id:
             self.notification_manager.add_telegram_notifier(
-                settings.telegram_bot_token, settings.telegram_chat_id
+                settings.telegram_bot_token,
+                settings.telegram_chat_id,
+                min_level=NotificationLevel.INFO,
             )
 
-    async def start(self):
+    async def start(self) -> None:
         if self.is_running:
             app_logger.warning("調度器已在運行中")
             return
@@ -105,7 +110,7 @@ class TaskScheduler:
             app_logger.error(f"調度器啟動失敗: {e}")
             raise
 
-    async def stop(self):
+    async def stop(self) -> None:
         if not self.is_running:
             return
 
@@ -113,7 +118,7 @@ class TaskScheduler:
         self.is_running = False
         app_logger.info("任務調度器已停止")
 
-    async def run_crawl_task(self):
+    async def run_crawl_task(self) -> None:
         task_start_time = datetime.now()
         app_logger.info("開始執行爬取任務")
 
@@ -135,7 +140,7 @@ class TaskScheduler:
                 str(e), float(log_entry.duration_seconds or 0.0)
             )
 
-    async def _process_crawl_result(self, result: Dict):
+    async def _process_crawl_result(self, result: Dict) -> None:
         duration = result["duration_seconds"]
 
         log_entry = CrawlerLog(
@@ -165,7 +170,7 @@ class TaskScheduler:
                 result["error_message"], duration
             )
 
-    async def run_daily_summary_task(self):
+    async def run_daily_summary_task(self) -> None:
         """執行每日用電摘要任務"""
         task_start_time = datetime.now()
         app_logger.info("開始執行每日用電摘要任務")
@@ -272,7 +277,8 @@ class TaskScheduler:
     def get_next_run_time(self) -> Optional[datetime]:
         jobs = self.scheduler.get_jobs()
         if jobs:
-            return jobs[0].next_run_time
+            next_run = jobs[0].next_run_time
+            return next_run if isinstance(next_run, datetime) else None
         return None
 
     def get_scheduler_status(self) -> Dict:
@@ -287,22 +293,22 @@ class TaskScheduler:
 class SchedulerManager:
     _instance: Optional["SchedulerManager"] = None
 
-    def __new__(cls):
+    def __new__(cls) -> "SchedulerManager":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         if not hasattr(self, "_initialized"):
             self.scheduler: Optional[TaskScheduler] = None
             self._initialized = True
 
-    async def start(self):
+    async def start(self) -> None:
         if not self.scheduler:
             self.scheduler = TaskScheduler()
         await self.scheduler.start()
 
-    async def stop(self):
+    async def stop(self) -> None:
         if self.scheduler:
             await self.scheduler.stop()
 

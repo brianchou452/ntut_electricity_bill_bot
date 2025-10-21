@@ -31,13 +31,17 @@ class DiscordNotifier(WebhookNotifier):
         title: str,
         message: str,
         records: Optional[List[ElectricityRecord]],
-        status: str,
+        level: Union[NotificationLevel, int],
     ) -> Dict[str, object]:
+        # 根據通知等級決定顏色
+        notification_level = NotificationLevel(level)
         color_map = {
-            "success": 0x00FF00,  # 綠色
-            "error": 0xFF0000,  # 紅色
-            "warning": 0xFFAA00,  # 橘色
-            "info": 0x0099FF,  # 藍色
+            NotificationLevel.DEBUG: 0x808080,  # 灰色
+            NotificationLevel.INFO: 0x0099FF,  # 藍色
+            NotificationLevel.SUCCESS: 0x00FF00,  # 綠色
+            NotificationLevel.WARNING: 0xFFAA00,  # 橘色
+            NotificationLevel.ERROR: 0xFF0000,  # 紅色
+            NotificationLevel.CRITICAL: 0xFF0000,  # 紅色
         }
 
         # 使用 settings 中的時區設定
@@ -47,7 +51,7 @@ class DiscordNotifier(WebhookNotifier):
         embed = {
             "title": title,
             "description": message,
-            "color": color_map.get(status, 0x0099FF),
+            "color": color_map.get(notification_level, 0x0099FF),
             "timestamp": now_local.isoformat(),
             "footer": {"text": "NTUT電費帳單機器人"},
         }

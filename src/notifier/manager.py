@@ -71,7 +71,7 @@ class NotificationManager:
         title = "🔴 電費爬取失敗"
         message = f"爬取過程發生錯誤：{error_message}\\n耗時 {duration:.2f} 秒"
 
-        await self._send_to_all(title, message, None, "error", NotificationLevel.ERROR)
+        await self._send_to_all(title, message, None, NotificationLevel.ERROR)
 
     async def send_partial_success_notification(
         self, records_count: int, duration: float
@@ -81,15 +81,13 @@ class NotificationManager:
             f"爬取到 {records_count} 筆記錄，但可能有遺漏\\n耗時 {duration:.2f} 秒"
         )
 
-        await self._send_to_all(
-            title, message, None, "warning", NotificationLevel.WARNING
-        )
+        await self._send_to_all(title, message, None, NotificationLevel.WARNING)
 
     async def send_startup_notification(self) -> None:
         title = "🚀 機器人啟動"
         message = "NTUT電費帳單機器人已成功啟動，開始執行定時爬取任務"
 
-        await self._send_to_all(title, message, None, "info", NotificationLevel.INFO)
+        await self._send_to_all(title, message, None, NotificationLevel.INFO)
 
     async def send_daily_summary_notification(
         self, daily_summary: Dict, chart_path: Optional[str] = None
@@ -121,7 +119,7 @@ class NotificationManager:
 • 用電量極少"""
 
         # 發送文字通知
-        await self._send_to_all(title, message, None, "info", NotificationLevel.INFO)
+        await self._send_to_all(title, message, None, NotificationLevel.INFO)
 
         # 如果有圖表，發送圖表
         if chart_path and Path(chart_path).exists():
@@ -156,16 +154,13 @@ class NotificationManager:
             )
             return
 
-        await self._send_to_all(
-            title, message, None, "success", NotificationLevel.SUCCESS
-        )
+        await self._send_to_all(title, message, None, NotificationLevel.SUCCESS)
 
     async def _send_to_all(
         self,
         title: str,
         message: str,
         records: Optional[List[ElectricityRecord]],
-        status: str,
         level: Union[NotificationLevel, int] = NotificationLevel.INFO,
     ) -> None:
         if not self.notifiers:
@@ -174,6 +169,6 @@ class NotificationManager:
 
         for notifier in self.notifiers:
             try:
-                await notifier.send_notification(title, message, records, status, level)
+                await notifier.send_notification(title, message, records, level)
             except Exception as e:
                 app_logger.error(f"通知發送失敗: {e}")
