@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 
 from src.database.database import Database
 from src.database.models import ElectricityRecord
-from src.notifier.webhook import NotificationManager
+from src.notifier import NotificationManager
 from src.scheduler.scheduler import TaskScheduler
 from src.utils.chart_generator import ChartGenerator
 from src.utils.logger import app_logger

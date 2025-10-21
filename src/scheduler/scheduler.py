@@ -13,7 +13,7 @@ from apscheduler.triggers.cron import CronTrigger
 from src.crawler.ntut_crawler import CrawlerService
 from src.database.database import Database
 from src.database.models import CrawlerLog
-from src.notifier.webhook import NotificationManager
+from src.notifier import NotificationManager
 from src.utils.chart_generator import ChartGenerator
 from src.utils.logger import app_logger
 from src.utils.settings import settings
