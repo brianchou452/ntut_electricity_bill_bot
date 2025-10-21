@@ -85,7 +85,7 @@ class NotificationManager:
         title = "🚀 機器人啟動"
         message = "NTUT電費帳單機器人已成功啟動，開始執行定時爬取任務"
 
-        await self._send_to_all(title, message, None, NotificationLevel.INFO)
+        await self._send_to_all(title, message, None, NotificationLevel.DEBUG)
 
     async def send_daily_summary_notification(
         self, daily_summary: Dict, chart_path: Optional[str] = None

@@ -37,4 +37,4 @@ class BotSettings(BaseSettings):
 
 
 # 全域設定實例
-settings = BotSettings()  # type: ignore # noqa
+settings = BotSettings()  # noqa
