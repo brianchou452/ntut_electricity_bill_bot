@@ -15,7 +15,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from src.notifier import NotificationManager, NotificationLevel  # noqa: E402
+from src.notifier import NotificationLevel, NotificationManager  # noqa: E402
 
 
 async def test_notification_levels():
@@ -29,7 +29,7 @@ async def test_notification_levels():
     manager = NotificationManager()
 
     # 測試場景 1: Discord 只接收 WARNING 以上的通知
-    print("\\n[場景 1] Discord 設定最小等級為 WARNING")
+    print("\n[場景 1] Discord 設定最小等級為 WARNING")
     manager.add_discord_webhook(
         webhook_url="https://discord.com/api/webhooks/test",  # 測試用，不會實際發送
         min_level=NotificationLevel.WARNING,
@@ -43,7 +43,7 @@ async def test_notification_levels():
         min_level=NotificationLevel.ERROR,
     )
 
-    print("\\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("開始測試不同等級的通知...")
     print("=" * 60)
 
@@ -58,7 +58,7 @@ async def test_notification_levels():
     ]
 
     for level, title, message in test_cases:
-        print(f"\\n[測試] 發送 {level.name} 等級通知: {title}")
+        print(f"\n[測試] 發送 {level.name} 等級通知: {title}")
         print("  預期結果:")
         print("    - Discord (min_level=WARNING): ", end="")
         print("✅ 發送" if level >= NotificationLevel.WARNING else "❌ 跳過")
@@ -69,12 +69,12 @@ async def test_notification_levels():
             title=title, message=message, records=None, level=level
         )
 
-    print("\\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("測試完成！")
     print("=" * 60)
 
     # 輸出說明
-    print("\\n【說明】")
+    print("\n【說明】")
     print("1. 等級順序: DEBUG < INFO < SUCCESS < WARNING < ERROR < CRITICAL")
     print("2. Discord 設定 min_level=WARNING，只會收到 WARNING/ERROR/CRITICAL")
     print("3. Telegram 設定 min_level=ERROR，只會收到 ERROR/CRITICAL")
@@ -83,7 +83,7 @@ async def test_notification_levels():
 
 async def test_level_conversion():
     """測試等級轉換功能"""
-    print("\\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("等級轉換測試")
     print("=" * 60)
 
@@ -96,10 +96,10 @@ async def test_level_conversion():
 
 
 if __name__ == "__main__":
-    print("\\n🚀 開始測試通知等級系統\\n")
+    print("\n🚀 開始測試通知等級系統\n")
 
     # 執行測試
     asyncio.run(test_notification_levels())
     asyncio.run(test_level_conversion())
 
-    print("\\n✅ 所有測試執行完畢！\\n")
+    print("\n✅ 所有測試執行完畢！\n")

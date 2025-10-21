@@ -80,7 +80,6 @@ class TelegramNotifier(WebhookNotifier):
         text_parts.extend(
             ["", f"_{now_local.strftime('%Y-%m-%d %H:%M:%S')}_", "_NTUT電費帳單機器人_"]
         )
-
         return {
             "chat_id": self.chat_id,
             "text": "\\n".join(text_parts),

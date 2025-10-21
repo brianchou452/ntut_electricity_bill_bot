@@ -3,7 +3,7 @@ Notification manager for coordinating multiple notification services
 """
 
 import zoneinfo
-from datetime import time, datetime
+from datetime import datetime, time
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -13,8 +13,8 @@ from src.utils.settings import settings
 
 from .base import WebhookNotifier
 from .discord import DiscordNotifier
-from .telegram import TelegramNotifier
 from .levels import NotificationLevel
+from .telegram import TelegramNotifier
 
 
 class NotificationManager:
@@ -69,7 +69,7 @@ class NotificationManager:
         self, error_message: str, duration: float
     ) -> None:
         title = "🔴 電費爬取失敗"
-        message = f"爬取過程發生錯誤：{error_message}\\n耗時 {duration:.2f} 秒"
+        message = f"爬取過程發生錯誤：{error_message}\n耗時 {duration:.2f} 秒"
 
         await self._send_to_all(title, message, None, NotificationLevel.ERROR)
 
@@ -77,9 +77,7 @@ class NotificationManager:
         self, records_count: int, duration: float
     ) -> None:
         title = "🟡 電費爬取部分成功"
-        message = (
-            f"爬取到 {records_count} 筆記錄，但可能有遺漏\\n耗時 {duration:.2f} 秒"
-        )
+        message = f"爬取到 {records_count} 筆記錄，但可能有遺漏\n耗時 {duration:.2f} 秒"
 
         await self._send_to_all(title, message, None, NotificationLevel.WARNING)
 
