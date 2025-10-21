@@ -10,6 +10,93 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 所有程式碼都應使用 async/await 語法來處理非同步操作。並且使用 type hints 來提升程式碼的可讀性和維護性。
 
+## 架構設計決策
+
+### 通知系統架構（2025-10）
+
+**核心理念**：單一職責、消除特殊情況、資料驅動
+
+#### 模組化結構
+```
+src/notifier/
+├── base.py           # WebhookNotifier 基礎類別
+├── discord.py        # DiscordNotifier 實作
+├── telegram.py       # TelegramNotifier 實作
+├── manager.py        # NotificationManager 協調器
+├── levels.py         # NotificationLevel 枚舉定義
+└── __init__.py       # 統一匯出接口
+```
+
+**設計理念**：
+- 從單一 webhook.py (300+ 行) 重構為模組化結構
+- 每個模組單一職責，便於維護與測試
+- 基礎類別定義通用邏輯，子類別專注於格式化
+
+#### 通知等級系統
+
+使用 `IntEnum` 實作類似 Python logging 的等級過濾：
+
+```python
+class NotificationLevel(IntEnum):
+    DEBUG = 10      # 除錯訊息
+    INFO = 20       # 一般資訊
+    SUCCESS = 25    # 成功訊息
+    WARNING = 30    # 警告訊息
+    ERROR = 40      # 錯誤訊息
+    CRITICAL = 50   # 嚴重錯誤
+```
+
+**關鍵決策**：
+- **消除冗餘參數**：移除 `status` 參數，統一使用 `level`
+- **資料驅動設計**：等級直接映射到顏色（Discord）和 emoji（Telegram）
+- **無特殊情況**：過濾邏輯統一在基礎類別，子類別無需重複實作
+
+**實作範例**：
+```python
+# 初始化時設定最小等級
+manager.add_discord_webhook(url, min_level=NotificationLevel.WARNING)
+manager.add_telegram_notifier(token, chat_id, min_level=NotificationLevel.ERROR)
+
+# 發送通知時自動過濾
+await notifier.send_notification(
+    title="系統錯誤",
+    message="發生錯誤",
+    level=NotificationLevel.ERROR  # 自動決定顏色/emoji
+)
+```
+
+**為什麼這樣設計**：
+1. **資料結構優先**：`IntEnum` 天生支援比較運算，不需額外邏輯
+2. **消除特殊情況**：不再需要同時處理 `status` 和 `level` 兩個參數
+3. **單一真相來源**：所有視覺樣式（顏色、emoji）由等級決定，無需重複配置
+
+### 程式碼品質工具
+
+**自動化檢查工具**：
+- **mypy**：靜態類型檢查，確保類型註解正確性
+- **ruff**：快速 linter，取代 flake8/pylint
+- **ruff-format**：程式碼格式化，取代 black
+- **pre-commit**：Git commit 前自動執行所有檢查
+
+**配置位置**：
+- `pyproject.toml`：mypy 配置
+- `.pre-commit-config.yaml`：pre-commit hooks 配置
+
+**強制要求**：
+- 所有函式必須有返回類型註解（`-> None` 或具體類型）
+- 所有參數必須有類型註解
+- mypy 檢查必須通過才能 commit
+
+### Docker 優化
+
+**.dockerignore**：
+- 排除開發工具（IDE 設定、Git、pre-commit）
+- 排除測試檔案與快取（mypy、ruff、pytest）
+- 排除環境變數檔案（應在執行時掛載）
+- 排除虛擬環境與編譯檔案
+
+**目標**：最小化 Docker image 大小，提升安全性
+
 ## Dependencies
 
 - **Playwright**: Web automation framework (>=1.54.0,<2.0.0)
