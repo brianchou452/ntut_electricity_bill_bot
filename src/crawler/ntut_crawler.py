@@ -158,6 +158,8 @@ class NTUTCrawler:
             await self.page.goto("https://www.aotech.tw/ntut/index.php", timeout=30000)
             app_logger.info("已載入主頁面")
 
+            await self.wait(random.randint(3, 7))
+
             # 點擊學生登入連結
             await self.page.get_by_role("link", name="學生登入").click()
             app_logger.info("已點擊學生登入連結")
@@ -172,9 +174,7 @@ class NTUTCrawler:
             await self.page.get_by_role("textbox", name="密碼").fill(self.password)
             app_logger.info("已填入密碼")
 
-            await self.page.wait_for_timeout(
-                random.randint(3000, 7000)
-            )  # 等待 3 到 7 秒以防止過快點擊
+            await self.wait(random.randint(3, 7))
 
             # 點擊登入按鈕
             await self.page.get_by_role("button", name="登入").click()
@@ -215,6 +215,12 @@ class NTUTCrawler:
         except Exception as e:
             app_logger.error(f"登入失敗: {e}")
             return False
+
+    async def wait(self, seconds: int) -> None:
+        """等待指定秒數"""
+        if self.page:
+            await self.page.wait_for_load_state("networkidle")
+            await self.page.wait_for_timeout(seconds * 1000)
 
     def create_balance_record(self, balance: float) -> ElectricityRecord:
         """建立餘額記錄"""
