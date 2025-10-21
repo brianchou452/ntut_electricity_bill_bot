@@ -2,18 +2,26 @@
 Base webhook notification service
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 
 from src.database.models import ElectricityRecord
 from src.utils.logger import app_logger
 
+from .levels import NotificationLevel, LEVEL_NAMES
+
 
 class WebhookNotifier:
-    def __init__(self, webhook_url: str, timeout: int = 30):
+    def __init__(
+        self,
+        webhook_url: str,
+        timeout: int = 30,
+        min_level: Union[NotificationLevel, int] = NotificationLevel.INFO,
+    ):
         self.webhook_url = webhook_url
         self.timeout = timeout
+        self.min_level = NotificationLevel(min_level)
 
     async def send_notification(
         self,
@@ -21,9 +29,19 @@ class WebhookNotifier:
         message: str,
         records: Optional[List[ElectricityRecord]] = None,
         status: str = "info",
+        level: Union[NotificationLevel, int] = NotificationLevel.INFO,
     ) -> bool:
         if not self.webhook_url:
             app_logger.warning("Webhook URL 未設定，跳過通知發送")
+            return False
+
+        # 檢查通知等級是否符合最小等級要求
+        notification_level = NotificationLevel(level)
+        if notification_level < self.min_level:
+            app_logger.debug(
+                f"通知等級 {LEVEL_NAMES[notification_level]} < "
+                f"最小等級 {LEVEL_NAMES[self.min_level]}，跳過發送: {title}"
+            )
             return False
 
         try:
@@ -59,10 +77,11 @@ class WebhookNotifier:
         status: str,
     ) -> Dict[str, object]:
         from datetime import datetime
+        from typing import Any
 
         timestamp = datetime.now().isoformat()
 
-        payload = {
+        payload: Dict[str, Any] = {
             "timestamp": timestamp,
             "title": title,
             "message": message,

@@ -8,7 +8,8 @@
       "Bash(poetry run:*)",
       "Bash(git commit:*)",
       "Bash(git add:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

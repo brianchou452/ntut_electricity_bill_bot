@@ -5,7 +5,7 @@ Telegram notification service
 import zoneinfo
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 
@@ -14,14 +14,22 @@ from src.utils.logger import app_logger
 from src.utils.settings import settings
 
 from .base import WebhookNotifier
+from .levels import NotificationLevel
 
 
 class TelegramNotifier(WebhookNotifier):
-    def __init__(self, bot_token: str, chat_id: str, timeout: int = 30):
+    def __init__(
+        self,
+        bot_token: str,
+        chat_id: str,
+        timeout: int = 30,
+        min_level: Union[NotificationLevel, int] = NotificationLevel.INFO,
+    ):
         # Telegram Bot API endpoint
         super().__init__(
             webhook_url=f"https://api.telegram.org/bot{bot_token}/sendMessage",
             timeout=timeout,
+            min_level=min_level,
         )
         self.bot_token = bot_token
         self.chat_id = chat_id

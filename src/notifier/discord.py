@@ -5,7 +5,7 @@ Discord webhook notification service
 import zoneinfo
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 
@@ -14,9 +14,18 @@ from src.utils.logger import app_logger
 from src.utils.settings import settings
 
 from .base import WebhookNotifier
+from .levels import NotificationLevel
 
 
 class DiscordNotifier(WebhookNotifier):
+    def __init__(
+        self,
+        webhook_url: str,
+        timeout: int = 30,
+        min_level: Union[NotificationLevel, int] = NotificationLevel.INFO,
+    ):
+        super().__init__(webhook_url, timeout, min_level)
+
     async def _create_payload(
         self,
         title: str,
@@ -57,7 +66,9 @@ class DiscordNotifier(WebhookNotifier):
 
         return {"embeds": [embed]}
 
-    def _format_record_time(self, created_at: Optional[datetime], target_tz) -> str:
+    def _format_record_time(
+        self, created_at: Optional[datetime], target_tz: zoneinfo.ZoneInfo
+    ) -> str:
         """格式化記錄時間到指定時區"""
         if not created_at:
             return "未知時間"
