@@ -55,7 +55,7 @@ services:
 
     security_opt:
       - no-new-privileges:true
-    
+
     # 允許容器訪問 /dev/shm 以支援 Chromium
     shm_size: 2gb
 

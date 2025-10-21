@@ -12,9 +12,14 @@ from src.utils.logger import app_logger
 
 
 class ChartGenerator:
-    def __init__(self):
+    def __init__(self) -> None:
         # 設定中文字體
-        plt.rcParams["font.sans-serif"] = ["Noto Sans CJK TC", "WenQuanYi Zen Hei", "WenQuanYi Micro Hei", "DejaVu Sans"]
+        plt.rcParams["font.sans-serif"] = [
+            "Noto Sans CJK TC",
+            "WenQuanYi Zen Hei",
+            "WenQuanYi Micro Hei",
+            "DejaVu Sans",
+        ]
         plt.rcParams["axes.unicode_minus"] = False
 
     async def generate_daily_usage_chart(
@@ -44,7 +49,7 @@ class ChartGenerator:
             # 創建圖表
             fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
             fig.suptitle(
-                f'電費使用報告 - {daily_summary.get("date", "Unknown")}',
+                f"電費使用報告 - {daily_summary.get('date', 'Unknown')}",
                 fontsize=16,
                 fontweight="bold",
             )
@@ -77,9 +82,9 @@ class ChartGenerator:
 
             # 新增統計資訊文字
             stats_text = f"""統計摘要:
-總用電金額: ${daily_summary.get('total_usage', 0):.2f} NTD
-起始餘額: ${daily_summary.get('start_balance', 0):.2f} NTD
-結束餘額: ${daily_summary.get('end_balance', 0):.2f} NTD
+總用電金額: ${daily_summary.get("total_usage", 0):.2f} NTD
+起始餘額: ${daily_summary.get("start_balance", 0):.2f} NTD
+結束餘額: ${daily_summary.get("end_balance", 0):.2f} NTD
 資料點數: {len(hourly_data)} 筆"""
 
             plt.figtext(

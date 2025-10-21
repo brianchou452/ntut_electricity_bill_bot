@@ -6,7 +6,9 @@
       "Bash(poetry install:*)",
       "Bash(poetry run playwright:*)",
       "Bash(poetry run:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

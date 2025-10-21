@@ -49,7 +49,7 @@ class TelegramNotifier(WebhookNotifier):
         # 組合訊息文字
         text_parts = [
             f"{status_emoji.get(status, 'ℹ️')} **{title}**",
-            f"",
+            "",
             message,
         ]
 
@@ -76,7 +76,9 @@ class TelegramNotifier(WebhookNotifier):
             "parse_mode": "Markdown",
         }
 
-    def _format_record_time(self, created_at: Optional[datetime], target_tz) -> str:
+    def _format_record_time(
+        self, created_at: Optional[datetime], target_tz: zoneinfo.ZoneInfo
+    ) -> str:
         """格式化記錄時間到指定時區"""
         if not created_at:
             return "未知時間"

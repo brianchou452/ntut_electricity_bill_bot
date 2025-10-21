@@ -1,0 +1,49 @@
+# Pre-commit hooks 配置
+# 在每次 git commit 前自動執行程式碼檢查
+
+repos:
+  # Python 程式碼格式化和檢查
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # 檢查檔案結尾是否有換行
+      - id: end-of-file-fixer
+      # 移除行尾空白
+      - id: trailing-whitespace
+      # 檢查 YAML 語法
+      - id: check-yaml
+      # 檢查是否有合併衝突標記
+      - id: check-merge-conflict
+      # 檢查是否有大檔案被加入
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+
+  # MyPy 類型檢查
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        name: mypy 類型檢查
+        # 只檢查 src/ 目錄下的檔案
+        files: ^src/
+        # 排除測試檔案
+        exclude: ^tests/
+        # 額外參數
+        args: [--config-file=pyproject.toml, --ignore-missing-imports]
+        # 需要的額外依賴（用於檢查時的類型提示）
+        additional_dependencies:
+          - types-aiofiles
+          - types-requests
+          - pydantic
+          - aiohttp
+          - loguru
+
+  # Ruff - 快速的 Python linter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.3
+    hooks:
+      # Linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      # Formatter
+      - id: ruff-format

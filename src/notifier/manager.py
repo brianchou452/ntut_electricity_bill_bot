@@ -17,7 +17,7 @@ from .telegram import TelegramNotifier
 
 
 class NotificationManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.notifiers: List[WebhookNotifier] = []
 
     def add_discord_webhook(self, webhook_url: str) -> None:
@@ -65,7 +65,9 @@ class NotificationManager:
         self, records_count: int, duration: float
     ) -> None:
         title = "🟡 電費爬取部分成功"
-        message = f"爬取到 {records_count} 筆記錄，但可能有遺漏\\n耗時 {duration:.2f} 秒"
+        message = (
+            f"爬取到 {records_count} 筆記錄，但可能有遺漏\\n耗時 {duration:.2f} 秒"
+        )
 
         await self._send_to_all(title, message, None, "warning")
 

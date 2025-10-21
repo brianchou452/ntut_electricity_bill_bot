@@ -44,7 +44,7 @@ class Database:
 
             await db.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_electricity_created 
+                CREATE INDEX IF NOT EXISTS idx_electricity_created
                 ON electricity_records(created_at)
             """
             )
@@ -57,7 +57,7 @@ class Database:
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute(
                     """
-                    INSERT INTO electricity_records 
+                    INSERT INTO electricity_records
                     (balance, created_at)
                     VALUES (?, ?)
                 """,
@@ -77,7 +77,7 @@ class Database:
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute(
                     """
-                    INSERT INTO crawler_logs 
+                    INSERT INTO crawler_logs
                     (timestamp, status, records_count, error_message, duration_seconds)
                     VALUES (?, ?, ?, ?, ?)
                 """,
@@ -101,8 +101,8 @@ class Database:
                 db.row_factory = aiosqlite.Row
                 async with db.execute(
                     """
-                    SELECT * FROM electricity_records 
-                    ORDER BY created_at DESC 
+                    SELECT * FROM electricity_records
+                    ORDER BY created_at DESC
                     LIMIT ?
                 """,
                     (limit,),
@@ -121,7 +121,7 @@ class Database:
                 db.row_factory = aiosqlite.Row
                 async with db.execute(
                     """
-                    SELECT * FROM electricity_records 
+                    SELECT * FROM electricity_records
                     WHERE created_at BETWEEN ? AND ?
                     ORDER BY created_at DESC
                 """,
@@ -149,11 +149,14 @@ class Database:
             app_logger.error(f"查詢最新餘額失敗: {e}")
             return None
 
-    async def get_yesterday_records(self, target_date: Optional[str] = None) -> List[ElectricityRecord]:
+    async def get_yesterday_records(
+        self, target_date: Optional[str] = None
+    ) -> List[ElectricityRecord]:
         """取得昨日的所有記錄"""
         try:
             if target_date is None:
                 from datetime import datetime, timedelta
+
                 yesterday = datetime.now() - timedelta(days=1)
                 target_date = yesterday.strftime("%Y-%m-%d")
 
@@ -186,7 +189,7 @@ class Database:
                 "total_usage": 0.0,
                 "start_balance": None,
                 "end_balance": None,
-                "hourly_usage": []
+                "hourly_usage": [],
             }
 
         # 計算總用電量 (起始餘額 - 結束餘額)
@@ -197,20 +200,24 @@ class Database:
         # 計算每小時用電量
         hourly_usage = []
         for i in range(1, len(records)):
-            prev_record = records[i-1]
+            prev_record = records[i - 1]
             curr_record = records[i]
             usage = prev_record.balance - curr_record.balance
 
-            hourly_usage.append({
-                "time": curr_record.created_at.strftime("%H:%M") if curr_record.created_at else "Unknown",
-                "usage": max(0, usage),  # 確保用電量不為負數
-                "balance": curr_record.balance
-            })
+            hourly_usage.append(
+                {
+                    "time": curr_record.created_at.strftime("%H:%M")
+                    if curr_record.created_at
+                    else "Unknown",
+                    "usage": max(0, usage),  # 確保用電量不為負數
+                    "balance": curr_record.balance,
+                }
+            )
 
         return {
             "date": target_date,
             "total_usage": max(0, total_usage),
             "start_balance": start_balance,
             "end_balance": end_balance,
-            "hourly_usage": hourly_usage
+            "hourly_usage": hourly_usage,
         }

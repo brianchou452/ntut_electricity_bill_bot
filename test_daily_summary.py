@@ -16,13 +16,13 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from src.database.database import Database
-from src.database.models import ElectricityRecord
-from src.notifier import NotificationManager
-from src.scheduler.scheduler import TaskScheduler
-from src.utils.chart_generator import ChartGenerator
-from src.utils.logger import app_logger
-from src.utils.settings import settings
+from src.database.database import Database  # noqa: E402
+from src.database.models import ElectricityRecord  # noqa: E402
+from src.notifier import NotificationManager  # noqa: E402
+from src.scheduler.scheduler import TaskScheduler  # noqa: E402
+from src.utils.chart_generator import ChartGenerator  # noqa: E402
+from src.utils.logger import app_logger  # noqa: E402
+from src.utils.settings import settings  # noqa: E402
 
 
 class TestDataGenerator:
@@ -121,14 +121,14 @@ class DailySummaryTester:
         # 如果提供了 webhook URL，就配置通知服務
         if webhook_url:
             self.notification_manager.add_discord_webhook(webhook_url)
-            app_logger.info(f"已配置 Discord webhook 用於測試")
+            app_logger.info("已配置 Discord webhook 用於測試")
 
         # 如果提供了 Telegram 設定，就配置 Telegram 通知
         if settings.telegram_bot_token and settings.telegram_chat_id:
             self.notification_manager.add_telegram_notifier(
                 settings.telegram_bot_token, settings.telegram_chat_id
             )
-            app_logger.info(f"已配置 Telegram 通知用於測試")
+            app_logger.info("已配置 Telegram 通知用於測試")
 
     async def test_database_queries(self, target_date: str = None):
         """測試資料庫查詢功能"""
