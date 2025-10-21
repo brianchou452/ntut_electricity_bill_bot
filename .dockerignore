@@ -1,0 +1,110 @@
+# Git 相關
+.git
+.github
+.gitignore
+.gitattributes
+
+# Python 位元組編譯檔案
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Python 發佈和建置產物
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虛擬環境
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE 設定檔
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# 開發工具設定
+.pre-commit-config.yaml
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# 日誌檔案
+logs/
+*.log
+
+# 本地資料庫檔案（如需保留資料，請透過 volume 掛載）
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Playwright 快取
+.playwright/
+
+# 環境變數檔案（應在執行時掛載，不應打包進 image）
+.env
+.env.*
+!.env.example
+
+# macOS 系統檔案
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker 相關檔案（不需要打包進 image）
+.docker/
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+
+# 測試相關
+test_*.py
+*_test.py
+tests/
+.coverage
+htmlcov/
+
+# 截圖和偵錯檔案
+screenshots/
+debug_*.png
+
+# 文件檔案（runtime 不需要）
+README.md
+CLAUDE.md
+TEST_EXAMPLES.md
+*.md
+!pyproject.toml
+
+# Poetry lock 檔（已在建置階段使用，runtime 不需要）
+poetry.lock
