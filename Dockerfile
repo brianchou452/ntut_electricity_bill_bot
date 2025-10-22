@@ -16,7 +16,7 @@ COPY pyproject.toml poetry.lock* ./
 
 # 安裝必要的系統套件、中文字體和 Poetry
 RUN apt-get update && \
-    apt-get install -y fonts-noto-cjk fonts-wqy-microhei fonts-wqy-zenhei x11-utils xvfb && \
+    apt-get install -y curl fonts-noto-cjk fonts-wqy-microhei fonts-wqy-zenhei x11-utils xvfb && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     pip install poetry && \
@@ -39,12 +39,16 @@ RUN mkdir -p /app/data /app/logs && \
 
 USER pwuser
 
-# 健康檢查
-HEALTHCHECK --interval=5m --timeout=30s --start-period=30s --retries=3 \
-    CMD python -c "import asyncio; from src.scheduler.scheduler import SchedulerManager; sm = SchedulerManager(); print('healthy' if sm.get_status().get('is_running', False) else exit(1))" || exit 1
+# 暴露 API 埠號
+EXPOSE 8000
 
-# 暴露埠號 (如果需要的話)
-# EXPOSE 8000
+# 健康檢查（根據 BOT_MODE 自動調整）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD if [ "${BOT_MODE}" = "api" ]; then \
+            curl -f http://localhost:8000/api/v1/health || exit 1; \
+        else \
+            python -c "import asyncio; from src.scheduler.scheduler import SchedulerManager; sm = SchedulerManager(); print('healthy' if sm.get_status().get('is_running', False) else exit(1))" || exit 1; \
+        fi
 
 # 使用啟動腳本
 ENTRYPOINT ["/entrypoint.sh"]

@@ -97,6 +97,143 @@ await notifier.send_notification(
 
 **目標**：最小化 Docker image 大小，提升安全性
 
+### FastAPI REST API 架構（2025-01）
+
+**核心理念**：資料結構優先、零破壞性、最簡實作
+
+#### 架構決策
+
+**問題**：如何提供 REST API 即時查詢電費餘額，而爬蟲需要 30-60 秒執行？
+
+**Linus 三問分析**：
+1. **真問題？** ✅ 是。現有程式只有排程器，缺乏 API 查詢能力
+2. **更簡單的方法？** ✅ 直接包裝現有 `CrawlerService.run_crawl_task()`，不需要 task queue、background jobs
+3. **會破壞什麼？** ✅ 零破壞。完全新增功能，現有排程器不受影響
+
+**設計方案**：
+```
+api.py (FastAPI 進入點)
+  └─ 直接呼叫 CrawlerService.run_crawl_task()
+      └─ 回傳 Dict[str, Any]（已包含所有需要的資料）
+```
+
+**關鍵決策**：
+1. **資料結構優先**：`CrawlerService.run_crawl_task()` 的回傳格式已完美，直接映射到 HTTP 回應
+2. **消除特殊情況**：統一錯誤處理 - status 值直接對應 HTTP 狀態碼（success=200, error=500, partial=207）
+3. **無並發問題**：每個 API 請求創建獨立的 CrawlerService 實例，完全隔離
+4. **同步查詢**：使用 async endpoint 直接等待爬蟲完成，簡單直接
+
+**檔案結構**：
+```
+專案根目錄/
+├── main.py    # 排程器模式進入點
+├── api.py     # FastAPI 模式進入點（新增）
+└── src/
+    └── crawler/
+        └── ntut_crawler.py  # 業務邏輯（不修改）
+```
+
+**API 端點設計**：
+- `GET /api/v1/balance` - 抓取最新餘額（同步等待結果）
+- `GET /api/v1/health` - 健康檢查
+- `GET /api/v1/status` - API 狀態資訊
+- `GET /docs` - Swagger UI（FastAPI 自動生成）
+
+**錯誤處理策略**：
+```python
+result["status"] == "success" → HTTP 200
+result["status"] == "error"   → HTTP 500
+result["status"] == "partial" → HTTP 207
+未預期例外                     → HTTPException 500
+```
+
+**為什麼這樣設計**：
+1. **零重複**：不複製任何業務邏輯，API 層只負責 HTTP
+2. **單一職責**：api.py 只做 HTTP 請求/回應轉換
+3. **可回退**：刪除 api.py 和 fastapi 依賴即可回到原狀態
+4. **可並行**：排程器和 API 可同時運行（如果需要）
+
+**類型安全**：
+- 所有函式有完整 type hints
+- mypy 檢查通過
+- 符合專案既有的程式碼品質標準
+
+**mypy 配置調整**：
+- 將 `disallow_untyped_decorators` 設為 `false`（FastAPI 裝飾器的限制）
+- 新增 `fastapi.*` 和 `uvicorn.*` 到 mypy.overrides
+
+### Docker 雙模式架構（2025-01）
+
+**核心理念**：單一 Docker image，環境變數控制，零破壞性
+
+#### 設計決策
+
+**問題**：如何讓 Docker 容器支援 API 和排程器兩種模式？
+
+**Linus 三問分析**：
+1. **真問題？** ✅ 需要靈活部署：開發用 API、生產用排程器、或兩者分開運行
+2. **更簡單的方法？** ✅ 環境變數控制，不需要兩個不同的 Dockerfile
+3. **會破壞什麼？** ✅ 零破壞。預設 API 模式，設定 `BOT_MODE=scheduler` 即可切回原模式
+
+**實作方案**：
+
+**1. entrypoint.sh - 統一進入點**
+```bash
+case "${BOT_MODE:-scheduler}" in
+  api)
+    exec uvicorn api:app --host 0.0.0.0 --port 8000
+    ;;
+  scheduler)
+    exec python main.py
+    ;;
+esac
+```
+
+**2. Dockerfile - 智慧健康檢查**
+```dockerfile
+# 暴露 API 埠號
+EXPOSE 8000
+
+# 根據模式自動調整健康檢查
+HEALTHCHECK CMD if [ "${BOT_MODE}" = "api" ]; then \
+    curl -f http://localhost:8000/api/v1/health; \
+  else \
+    python -c "...scheduler check..."; \
+  fi
+```
+
+**3. docker-compose.yml - 環境變數控制**
+```yaml
+environment:
+  - BOT_MODE=${BOT_MODE:-api}  # 預設 API 模式
+  - API_PORT=${API_PORT:-8000}
+
+ports:
+  - "${API_PORT:-8000}:8000"
+```
+
+**使用方式**：
+```bash
+# API 模式（預設）
+docker-compose up -d
+
+# 排程器模式
+BOT_MODE=scheduler docker-compose up -d
+
+# 自訂埠號
+API_PORT=9000 docker-compose up -d
+```
+
+**為什麼這樣設計**：
+1. **單一真相來源**：一個 Dockerfile，一個 image，減少維護成本
+2. **零學習成本**：環境變數控制，DevOps 標準做法
+3. **向後相容**：設定 `BOT_MODE=scheduler` 完全回到原有行為
+4. **靈活部署**：可同時運行兩個容器（一個 API，一個排程器）
+
+**依賴變更**：
+- 新增 `curl` 套件（用於 API 健康檢查）
+- 套件按字母順序排列（符合 SonarQube 規範）
+
 ## Dependencies
 
 - **Playwright**: Web automation framework (>=1.54.0,<2.0.0)

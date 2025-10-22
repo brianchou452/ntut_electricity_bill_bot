@@ -9,10 +9,11 @@ services:
     restart: unless-stopped
 
     environment:
+      - BOT_MODE=${BOT_MODE:-api}  # 預設啟動 API 模式（可選：api, scheduler）
       - NTUT_USERNAME=${NTUT_USERNAME}
       - NTUT_PASSWORD=${NTUT_PASSWORD}
-      - CRON_SCHEDULE=${CRON_SCHEDULE:-0 */1 * * *} # 每小時執行一次
-      - RUN_ON_STARTUP=${RUN_ON_STARTUP:-true}
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-0 */1 * * *} # 每小時執行一次（僅 scheduler 模式使用）
+      - RUN_ON_STARTUP=${RUN_ON_STARTUP:-true}      # 啟動時立即執行（僅 scheduler 模式使用）
       - TZ=${TZ:-Asia/Taipei}
       - DB_PATH=/app/data/electricity_bot.db
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
@@ -21,6 +22,9 @@ services:
     env_file:
       - .env
 
+    ports:
+      - "${API_PORT:-8000}:8000"  # 暴露 API 埠號（僅 API 模式使用）
+
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -28,15 +32,13 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "python",
-          "-c",
-          "import asyncio; from src.scheduler.scheduler import SchedulerManager; sm = SchedulerManager(); print('healthy' if sm.get_status().get('is_running', False) else exit(1))",
+          "CMD-SHELL",
+          "if [ \"$BOT_MODE\" = \"api\" ]; then curl -f http://localhost:8000/api/v1/health || exit 1; else python -c \"import asyncio; from src.scheduler.scheduler import SchedulerManager; sm = SchedulerManager(); print('healthy' if sm.get_status().get('is_running', False) else exit(1))\" || exit 1; fi"
         ]
-      interval: 5m
-      timeout: 30s
+      interval: 30s
+      timeout: 10s
       retries: 3
-      start_period: 1m
+      start_period: 30s
 
     deploy:
       resources:
